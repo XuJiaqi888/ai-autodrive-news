@@ -226,7 +226,8 @@ export async function clearFeatured() {
 
 export async function setFeatured(ids: string[]) {
   if (!ids.length) return;
-  await sql`UPDATE items SET is_featured = TRUE WHERE id = ANY(${ids})`;
+  const idArray = sql.array(ids, 'text');
+  await sql`UPDATE items SET is_featured = TRUE WHERE id = ANY(${idArray})`;
 }
 
 export async function selectFeaturedTop(limit = 2) {
