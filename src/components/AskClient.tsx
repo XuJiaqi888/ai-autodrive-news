@@ -92,16 +92,16 @@ export default function AskClient() {
             </div>
             <span className="font-medium text-slate-900">AI 回答</span>
           </div>
-          <div className="prose prose-slate prose-lg max-w-none break-words 
+          <div className="prose prose-slate prose-lg max-w-none break-words overflow-hidden
             [&>h2]:text-xl [&>h2]:font-bold [&>h2]:text-slate-900 [&>h2]:mt-8 [&>h2]:mb-4 [&>h2]:pb-2 [&>h2]:border-b-2 [&>h2]:border-slate-200
             [&>h3]:text-lg [&>h3]:font-semibold [&>h3]:text-slate-800 [&>h3]:mt-6 [&>h3]:mb-3
-            [&>p]:text-base [&>p]:leading-relaxed [&>p]:text-slate-700 [&>p]:my-4
+            [&>p]:text-base [&>p]:leading-relaxed [&>p]:text-slate-700 [&>p]:my-4 [&>p]:break-words [&>p]:overflow-wrap-anywhere
             [&>strong]:font-semibold [&>strong]:text-slate-900
             [&>ul]:my-4 [&>ul]:pl-6 [&>ol]:my-4 [&>ol]:pl-6
-            [&>ul>li]:text-base [&>ul>li]:leading-relaxed [&>ul>li]:text-slate-700 [&>ul>li]:my-2
-            [&>ol>li]:text-base [&>ol>li]:leading-relaxed [&>ol>li]:text-slate-700 [&>ol>li]:my-2
+            [&>ul>li]:text-base [&>ul>li]:leading-relaxed [&>ul>li]:text-slate-700 [&>ul>li]:my-2 [&>ul>li]:break-words
+            [&>ol>li]:text-base [&>ol>li]:leading-relaxed [&>ol>li]:text-slate-700 [&>ol>li]:my-2 [&>ol>li]:break-words
             [&>blockquote]:border-l-4 [&>blockquote]:border-slate-300 [&>blockquote]:pl-4 [&>blockquote]:my-6 [&>blockquote]:text-slate-600 [&>blockquote]:italic
-            [&_a]:text-blue-600 [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline hover:[&_a]:text-blue-800 [&_a]:break-all">
+            [&_a]:text-blue-600 [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline hover:[&_a]:text-blue-800 [&_a]:break-words [&_a]:overflow-wrap-anywhere">
             <ReactMarkdown>{a}</ReactMarkdown>
           </div>
         </div>
