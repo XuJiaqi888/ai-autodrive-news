@@ -159,7 +159,7 @@ export async function askConcept(question: string) {
 ${formattedRefs || '检索中遇到问题，可能网络资源暂时不可用'}
 
 **回答要求**：
-1. 每个要点都要明确引用对应的资料编号 [1][2]等，产生具体翔实的分析
+1. 每个要点都要明确引用对应的资料编号 [1][2]等，产生具体翔实的分析，在回答末尾列出你参考了的资料，包括[1][2]索引及标题网址。
 2. 优先使用Google News、arXiv等最新资料（source显示为google-news或arxiv）
 3. 如果资料不足，结合你的专业知识补充，但要明确标注
 
