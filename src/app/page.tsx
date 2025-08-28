@@ -1,12 +1,15 @@
 import SubscribeForm from "@/components/SubscribeForm";
 import AskClient from "@/components/AskClient";
-import { selectRecentTop, selectLatest } from "@/lib/db";
+import { selectRecentTop, selectLatest, selectFeaturedTop } from "@/lib/db";
 import Image from "next/image";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const top2 = await selectRecentTop(72, 2);
+  let top2 = await selectFeaturedTop(2);
+  if (!top2?.length) {
+    top2 = await selectRecentTop(72, 2);
+  }
   const latest = await selectLatest(20);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop } from '@/lib/db';
+import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop, clearFeatured, setFeatured } from '@/lib/db';
 import { RSS_SOURCES } from '@/lib/sources';
 import { fetchRssFeed, normalizeRssItem } from '@/lib/normalize';
 import { sendDigest } from '@/lib/email';
@@ -55,11 +55,19 @@ export async function GET(req: NextRequest) {
         try {
           const zh = await summarizeToZh(String(it.title), (it as any).summary ?? '');
           if (zh) await updateSummaryZh(String(it.id), zh);
+          // 同步写回内存对象，确保后续邮件使用到中文摘要
+          (it as any).summary_zh = zh;
         } catch {}
       }
     }
 
-    // 3) 邮件推送
+    // 3) 标记当日精选（用于页面展示 Top2）
+    try {
+      await clearFeatured();
+      await setFeatured(top2.map((i) => String(i.id)));
+    } catch {}
+
+    // 4) 邮件推送
     const subs = await listSubscribers();
     const zhSubs = subs.filter((s) => s.lang === 'zh');
     const enSubs = subs.filter((s) => s.lang === 'en');
@@ -73,7 +81,7 @@ export async function GET(req: NextRequest) {
     const results = await Promise.allSettled(mailJobs);
     const mailedOk = results.filter((r) => r.status === 'fulfilled' && (r as any).value.ok).length;
 
-    return NextResponse.json({ ok: true, pulled: batches.length, mailed: mailedOk });
+    return NextResponse.json({ ok: true, pulled: batches.length, mailed: mailedOk, featured: top2.map(i => i.id) });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'internal error';
     return NextResponse.json({ error: message }, { status: 500 });

@@ -220,4 +220,23 @@ export async function selectRecentNewsTop(hours = 48, limit = 2) {
   return rows as ItemRow[];
 }
 
+export async function clearFeatured() {
+  await sql`UPDATE items SET is_featured = FALSE WHERE is_featured = TRUE`;
+}
+
+export async function setFeatured(ids: string[]) {
+  if (!ids.length) return;
+  await sql`UPDATE items SET is_featured = TRUE WHERE id = ANY(${ids})`;
+}
+
+export async function selectFeaturedTop(limit = 2) {
+  const { rows } = await sql`
+    SELECT * FROM items
+    WHERE is_featured = TRUE
+    ORDER BY published_at DESC NULLS LAST, created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as ItemRow[];
+}
+
 
