@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
     // 额外抓取 GitHub 仓库（热门、近期活跃）
     const gh = await searchGithubRepos('autonomous driving OR ADAS OR smart cockpit OR in-cabin', 5);
     for (const r of gh) {
-      await insertOrUpdateItem({ id: r.html_url, title: r.full_name, url: r.html_url, source: 'github', summary: r.description ?? '', lang: 'en', published_at: new Date() });
+      // 不写入当前时间，保持发布为空（null），前端将不显示时间
+      await insertOrUpdateItem({ id: r.html_url, title: r.full_name, url: r.html_url, source: 'github', summary: r.description ?? '', lang: 'en' });
     }
 
     // 2) 当日 Top 2 用于邮件（生成中文摘要）
