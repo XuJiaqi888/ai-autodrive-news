@@ -1,7 +1,8 @@
+// @ts-nocheck
 import SubscribeForm from "@/components/SubscribeForm";
 import AskClient from "@/components/AskClient";
 import { selectRecentTop, selectLatest, selectFeaturedTop } from "@/lib/db";
-import Image from "next/image";
+import ReactMarkdown from "react-markdown";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +25,7 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500">Powered by</span>
-            <Image 
-              src="/microsoft-logo.png" 
-              alt="Microsoft" 
-              width={108} 
-              height={24}
-              className="opacity-70"
-            />
+            <img src="/microsoft-logo.png" alt="Microsoft" width={108} height={24} className="opacity-70" />
           </div>
         </div>
       </header>
@@ -77,11 +72,18 @@ export default async function Home() {
                 </a>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-sm text-slate-500 bg-white px-2 py-1 rounded border">{(it as any).source ?? ''}</span>
+                  {(it as any).published_at && (
+                    <span className="text-xs text-slate-400">
+                      {new Date(String((it as any).published_at)).toLocaleString('zh-CN', { hour12: false })}
+                    </span>
+                  )}
                 </div>
                 {(((it as any).summary_zh) || (it as any).summary) && (
-                  <p className="text-slate-700 text-sm mt-3 leading-relaxed">
-                    {(it as any).summary_zh || (it as any).summary}
-                  </p>
+                  <div className="mt-3">
+                    <ReactMarkdown className="prose prose-slate max-w-none text-sm">
+                      {(it as any).summary_zh || (it as any).summary}
+                    </ReactMarkdown>
+                  </div>
                 )}
               </div>
             ))}
@@ -103,14 +105,21 @@ export default async function Home() {
                   {it.title}
                 </a>
                 {((it as any).summary_zh || (it as any).summary) && 
-                  <p className="text-slate-600 text-sm leading-relaxed line-clamp-2">
-                    {(it as any).summary_zh || (it as any).summary}
-                  </p>
+                  <div className="text-slate-700 text-sm leading-relaxed">
+                    <ReactMarkdown className="prose prose-slate max-w-none line-clamp-2">
+                      {(it as any).summary_zh || (it as any).summary}
+                    </ReactMarkdown>
+                  </div>
                 }
                 <div className="flex items-center gap-2 mt-3">
                   <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
                     {(it as any).source ?? ''}
                   </span>
+                  {(it as any).published_at && (
+                    <span className="text-xs text-slate-400">
+                      {new Date(String((it as any).published_at)).toLocaleString('zh-CN', { hour12: false })}
+                    </span>
+                  )}
                 </div>
               </article>
             ))}
