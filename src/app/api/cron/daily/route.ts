@@ -10,9 +10,12 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    // 优先允许 Vercel Cron，或本地/手动带 key 调用
-    const cronHeader = req.headers.get('x-vercel-cron');
-    if (!cronHeader) {
+    // 允许 Vercel Cron（兼容多种可能的 Header/UA），否则要求 key
+    const cronHeader = req.headers.get('x-vercel-cron') || req.headers.get('x-vercel-scheduled');
+    const ua = req.headers.get('user-agent') || '';
+    const vercelHint = ua.toLowerCase().includes('vercel') || ua.toLowerCase().includes('cron') ||
+      req.headers.has('x-vercel-id') || req.headers.has('x-vercel-deployment-url');
+    if (!cronHeader && !vercelHint) {
       const url = new URL(req.url);
       const key = url.searchParams.get('key');
       if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
