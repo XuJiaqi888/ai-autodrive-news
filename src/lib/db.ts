@@ -249,7 +249,8 @@ export async function updateShortSummaryZh(id: string, shortZh: string) {
 }
 
 export async function updateTags(id: string, tags: string[]) {
-  await sql`UPDATE items SET tags = ${tags} WHERE id = ${id}`;
+  const arrLiteral = '{' + (tags || []).map(t => '"' + String(t).replace(/"/g, '\\"') + '"').join(',') + '}';
+  await sql`UPDATE items SET tags = ${arrLiteral}::text[] WHERE id = ${id}`;
 }
 
 export async function selectLatestByCategory(category: 'all'|'perception'|'planning'|'industry'|'research', limit = 30) {
