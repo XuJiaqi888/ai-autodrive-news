@@ -29,7 +29,7 @@ export const RSS_SOURCES: { url: string; kind: 'news'|'paper'; lang?: 'zh'|'en';
 
 export const KEYWORDS = [
   'autonomous driving', 'self-driving', 'autopilot', 'ADAS', 'end-to-end driving', 'BEV', 'BEVFormer',
-  'smart cockpit', 'in-cabin', '智能座舱', '车载大模型', '自动驾驶', '智驾', '泊车', 'L2', 'L3','L4'
+  'smart cockpit', 'in-cabin', '智能座舱', '车载大模型', '自动驾驶', '智驾', '泊车', 'L2', 'L3', 'L4',
   'Vision-Language', 'VLM', 'LLM', 'VLA', '多模态', '端到端', '驾驶', '道路',
 ];
 
