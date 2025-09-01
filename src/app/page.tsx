@@ -1,12 +1,14 @@
 // @ts-nocheck
 import SubscribeForm from "@/components/SubscribeForm";
 import AskClient from "@/components/AskClient";
-import { selectRecentTop, selectLatestByCategory, selectFeaturedTop } from "@/lib/db";
+import { ensureSchema, selectRecentTop, selectLatestByCategory, selectFeaturedTop } from "@/lib/db";
 import ReactMarkdown from "react-markdown";
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+  // 确保首次访问时已迁移新增列（summary_short_zh 等）
+  await ensureSchema();
   let top2 = await selectFeaturedTop(2);
   if (!top2?.length) {
     top2 = await selectRecentTop(72, 2);
