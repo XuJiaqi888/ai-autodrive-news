@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop, clearFeatured, setFeatured } from '@/lib/db';
+import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop, clearFeatured, setFeatured, selectLatestForShort, updateShortSummaryZh, updateTags } from '@/lib/db';
 import { RSS_SOURCES } from '@/lib/sources';
 import { fetchRssFeed, normalizeRssItem } from '@/lib/normalize';
 import { sendDigest } from '@/lib/email';
 import { searchGithubRepos } from '@/lib/github';
-import { summarizeToZh } from '@/lib/translate';
+import { summarizeToZh, summarizeBatchToZhShort } from '@/lib/translate';
 
 export const runtime = 'nodejs';
 
@@ -65,13 +65,57 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3) 标记当日精选（用于页面展示 Top2）
+    // 3) 批量为最近30条生成短摘要（缺失者）
+    try {
+      const latestForShort = await selectLatestForShort(30);
+      const need = latestForShort.filter((x) => !x.summary_short_zh);
+      if (need.length) {
+        const map = await summarizeBatchToZhShort(need.map(x => ({ id: x.id, title: x.title, summary: x.summary_zh || x.summary })));
+        for (const n of need) {
+          const s = map[n.id];
+          if (s) await updateShortSummaryZh(n.id, s);
+        }
+      }
+
+      // 规则标签：为缺少 tags 的最近30条打上主类标签（轻量规则）
+      const classify = (title: string, summary?: string | null): string[] => {
+        const t = `${title}\n${summary || ''}`.toLowerCase();
+        const tags: string[] = [];
+        const hit = (re: RegExp) => re.test(t);
+        // perception
+        if (hit(/\bcv\b|computer vision|视觉|object detection|segmentation|bev|lidar|激光雷达|radar|毫米波|sensor fusion|传感器融合|multimodal|vlm|vision-language/i)) {
+          tags.push('perception');
+        }
+        // planning
+        if (hit(/path planning|motion planning|行为预测|behavior prediction|控制算法|control|mpc|端到端|e2e\b/i)) {
+          tags.push('planning');
+        }
+        // industry
+        if (hit(/投融资|融资|并购|ipo|量产|交付|落地|robotaxi|法规|监管|许可|标准|召回|公司|发布会|市场/i)) {
+          tags.push('industry');
+        }
+        // research
+        if (hit(/arxiv|paper|preprint|cvpr|iccv|icra|neurips|dataset|benchmark|github|开源|论文|学术|会议/i)) {
+          tags.push('research');
+        }
+        return Array.from(new Set(tags));
+      };
+
+      for (const x of latestForShort) {
+        if (!x.tags || x.tags.length === 0) {
+          const tg = classify(x.title, x.summary_zh || x.summary);
+          if (tg.length) await updateTags(x.id, tg);
+        }
+      }
+    } catch {}
+
+    // 4) 标记当日精选（用于页面展示 Top2）
     try {
       await clearFeatured();
       await setFeatured(top2.map((i) => String(i.id)));
     } catch {}
 
-    // 4) 邮件推送
+    // 5) 邮件推送
     const subs = await listSubscribers();
     const zhSubs = subs.filter((s) => s.lang === 'zh');
     const enSubs = subs.filter((s) => s.lang === 'en');

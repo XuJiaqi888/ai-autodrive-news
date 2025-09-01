@@ -1,17 +1,20 @@
 // @ts-nocheck
 import SubscribeForm from "@/components/SubscribeForm";
 import AskClient from "@/components/AskClient";
-import { selectRecentTop, selectLatest, selectFeaturedTop } from "@/lib/db";
+import { selectRecentTop, selectLatestByCategory, selectFeaturedTop } from "@/lib/db";
 import ReactMarkdown from "react-markdown";
 
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   let top2 = await selectFeaturedTop(2);
   if (!top2?.length) {
     top2 = await selectRecentTop(72, 2);
   }
-  const latest = await selectLatest(20);
+  const cat = (typeof searchParams?.cat === 'string' ? searchParams?.cat : 'all') || 'all';
+  const allowed = new Set(['all','perception','planning','industry','research']);
+  const category = allowed.has(String(cat)) ? String(cat) as any : 'all';
+  const latest = await selectLatestByCategory(category, 30);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
       {/* Header */}
@@ -52,7 +55,7 @@ export default async function Home() {
             </div>
             <h2 className="text-2xl font-semibold text-slate-900">每日精选订阅</h2>
           </div>
-          <p className="text-slate-600 mb-6">每天 9:00 自动推送最新智能驾驶/车载大模型资讯与论文精选</p>
+          <p className="text-slate-600 mb-6">每天 9:00-10:00 自动推送最新智能驾驶/车载大模型资讯与论文精选</p>
           <SubscribeForm />
         </section>
 
@@ -98,16 +101,33 @@ export default async function Home() {
             </div>
             <h2 className="text-2xl font-semibold text-slate-900">最新资讯</h2>
           </div>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              { key: 'all', label: '全部' },
+              { key: 'perception', label: '感知' },
+              { key: 'planning', label: '规划与控制' },
+              { key: 'industry', label: '产业政策' },
+              { key: 'research', label: '研究开源' },
+            ].map(btn => (
+              <a
+                key={btn.key}
+                href={`/?cat=${btn.key}`}
+                className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${((typeof searchParams?.cat==='string'?searchParams?.cat:'all')||'all')===btn.key ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+              >
+                {btn.label}
+              </a>
+            ))}
+          </div>
           <div className="space-y-4">
             {latest.map((it) => (
               <article key={it.id} className="pb-4 border-b border-slate-100 last:border-b-0 hover:bg-slate-50 p-4 rounded-lg transition-colors">
                 <a href={String(it.url)} target="_blank" className="text-lg font-medium text-slate-900 hover:text-blue-600 transition-colors block mb-2">
                   {it.title}
                 </a>
-                {((it as any).summary_zh || (it as any).summary) && 
+                {(((it as any).summary_short_zh) || (it as any).summary_zh || (it as any).summary) && 
                   <div className="text-slate-700 text-sm leading-relaxed">
                     <ReactMarkdown className="prose prose-slate max-w-none line-clamp-2">
-                      {(it as any).summary_zh || (it as any).summary}
+                      {(it as any).summary_short_zh || (it as any).summary_zh || (it as any).summary}
                     </ReactMarkdown>
                   </div>
                 }

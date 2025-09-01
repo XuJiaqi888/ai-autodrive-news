@@ -10,6 +10,7 @@ export async function ensureSchema() {
       source TEXT,
       summary TEXT,
       summary_zh TEXT,
+      summary_short_zh TEXT,
       lang TEXT,
       tags TEXT[],
       published_at TIMESTAMPTZ,
@@ -23,6 +24,7 @@ export async function ensureSchema() {
 
   // 向后兼容：为旧表补加 summary_zh 列
   await sql`ALTER TABLE items ADD COLUMN IF NOT EXISTS summary_zh TEXT`;
+  await sql`ALTER TABLE items ADD COLUMN IF NOT EXISTS summary_short_zh TEXT`;
 
   // FTS 生成列与索引（幂等）
   await sql`
@@ -76,6 +78,7 @@ export interface ItemRow {
   url: string;
   source: string | null;
   summary: string | null;
+  summary_short_zh?: string | null;
   lang: string | null;
   tags: string[] | null;
   published_at: Date | null;
@@ -182,12 +185,12 @@ export async function selectRecentTop(hours = 72, limit = 2) {
 
 export async function selectLatest(limit = 20) {
   const { rows } = await sql`
-    SELECT id, title, url, source, summary, lang, published_at, score
+    SELECT id, title, url, source, summary, summary_short_zh, lang, published_at, score, tags
     FROM items
     ORDER BY published_at DESC NULLS LAST, created_at DESC
     LIMIT ${limit}
   `;
-  return rows as (Pick<ItemRow, 'id'|'title'|'url'|'source'|'summary'|'lang'|'published_at'|'score'> & { summary_zh?: string | null })[];
+  return rows as (Pick<ItemRow, 'id'|'title'|'url'|'source'|'summary'|'lang'|'published_at'|'score'> & { summary_zh?: string | null; summary_short_zh?: string | null; tags?: string[] | null })[];
 }
 
 export async function updateSummaryZh(id: string, summaryZh: string) {
@@ -239,6 +242,44 @@ export async function selectFeaturedTop(limit = 2) {
     LIMIT ${limit}
   `;
   return rows as ItemRow[];
+}
+
+export async function updateShortSummaryZh(id: string, shortZh: string) {
+  await sql`UPDATE items SET summary_short_zh = ${shortZh} WHERE id = ${id}`;
+}
+
+export async function updateTags(id: string, tags: string[]) {
+  await sql`UPDATE items SET tags = ${tags} WHERE id = ${id}`;
+}
+
+export async function selectLatestByCategory(category: 'all'|'perception'|'planning'|'industry'|'research', limit = 30) {
+  if (category === 'all') {
+    const { rows } = await sql`
+      SELECT id, title, url, source, summary, summary_short_zh, lang, published_at, score, tags
+      FROM items
+      ORDER BY published_at DESC NULLS LAST, created_at DESC
+      LIMIT ${limit}
+    `;
+    return rows as ItemRow[];
+  }
+  const { rows } = await sql`
+    SELECT id, title, url, source, summary, summary_short_zh, lang, published_at, score, tags
+    FROM items
+    WHERE tags IS NOT NULL AND ${category} = ANY(tags)
+    ORDER BY published_at DESC NULLS LAST, created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as ItemRow[];
+}
+
+export async function selectLatestForShort(limit = 30) {
+  const { rows } = await sql`
+    SELECT id, title, summary, summary_zh, summary_short_zh, source, tags
+    FROM items
+    ORDER BY published_at DESC NULLS LAST, created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as { id: string; title: string; summary: string | null; summary_zh: string | null; summary_short_zh: string | null; source: string | null; tags: string[] | null }[];
 }
 
 
