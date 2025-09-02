@@ -11,10 +11,10 @@
 ## 🌟 核心特性
 
 ### 📰 智能资讯聚合
-- **多源数据采集**：整合 arXiv、机器之心、量子位、TechCrunch、Automotive Dive 等30+权威源
-- **日定时更新**：每日9:00自动抓取最新资讯、论文、GitHub项目
-- **智能筛选**：基于AI+自动驾驶关键词的精准过滤
-- **去重排序**：URL去重 + 时间权重排序
+- **多源数据采集**：整合 arXiv、TechCrunch、Automotive Dive、车东西、盖世汽车、Electrek 等 50+ 权威源（中英文）
+- **日定时更新**：每日 09:00±1 小时（Vercel Hobby 计划存在 1 小时弹性窗口）自动抓取最新资讯、论文、GitHub 项目
+- **智能筛选**：基于 AI+自动驾驶关键词与规则的精准过滤与分类（允许多标签）
+- **去重排序**：URL 去重 + 时间权重 + 来源权重
 
 ### 🤖 双模式AI Agent
 - **⚡ 快速回答**：秒级响应，简洁明了的概念解释
@@ -23,10 +23,11 @@
 - **🌐 实时搜索**：Google News + arXiv + 行业RSS的智能融合
 
 ### 📧 智能邮件订阅
-- **🎯 每日Top2**：AI筛选的最有价值资讯推送
-- **🌍 双语支持**：中英文订阅，自动翻译摘要
-- **💌 精美模板**：HTML卡片式邮件，300-400词深度摘要
-- **🔗 一键退订**：HMAC签名保护的安全退订
+- **🎯 每日 Top2**：AI 挑选两条“今日精选”，邮件推送（中文/英文）
+- **📝 摘要策略**：
+  - Top2：现场生成长摘要（邮件与首页 Top2 展示）
+  - 最新资讯：每日任务批处理生成“一句话中文短摘要”（30 条），首页优先显示
+- **🔗 一键退订**：HMAC 签名保护的安全退订
 
 ## 🛠️ 技术架构
 
@@ -79,12 +80,17 @@ const score =
   ftsRank * 0.2;              // FTS排名
 ```
 
-#### 📊 每日ETL流程
+#### 📊 每日 ETL 流程
 ```typescript
-1. 多源RSS采集 → 2. 关键词过滤 → 3. URL去重 
-→ 4. Postgres存储 → 5. Top2筛选 → 6. Gemini摘要 
-→ 7. 邮件推送
+1. 多源 RSS 采集 → 2. 关键词过滤/归一化 → 3. URL 去重 
+→ 4. Postgres 存储 → 5. Top2 挑选 + 长摘要（现场） 
+→ 6. 最近 30 条批处理“一句话中文短摘要”并持久化 
+→ 7. 规则补标（感知/规划与控制/产业/研究，多标签） → 8. 邮件推送
 ```
+
+#### 🧭 首页筛选
+- “最新资讯”支持 5 个按钮筛选（全部/感知/规划与控制/产业政策/研究开源），展示 30 条
+- URL 参数：`/?cat=all|perception|planning|industry|research`
 
 ## 🚀 快速开始
 
@@ -120,7 +126,16 @@ GEMINI_API_KEY=your_gemini_api_key
 POSTGRES_URL=your_postgres_connection_string
 
 # 邮件服务 (Gmail)
-E
+EMAIL_USER=your_gmail_address
+EMAIL_PASSWORD=your_gmail_app_password   # 需开启2FA后创建 App Password
+
+# 站点 & 安全
+NEXT_PUBLIC_SITE_URL=https://ai-autodrive-researcher.vercel.app
+CRON_SECRET=your_random_secret
+
+# 可选
+GITHUB_TOKEN=optional_github_pat
+```
 
 ## 📋 API接口
 
@@ -151,17 +166,21 @@ GET /api/unsubscribe?email=user@example.com&token=signed_token
 // 每日数据更新 (UTC 01:00 = 北京 09:00)
 GET /api/cron/daily?key=your_cron_secret
 ```
+说明：Vercel Hobby 计划的 Cron 存在 **±1 小时弹性窗口**（01:00–01:59 UTC）。若需更精准执行，可升级套餐或使用外部定时器（例如 GitHub Actions / Cloudflare Workers）请求上面的带 key URL。
 
-## 📊 数据源覆盖
+## 📊 数据源覆盖（部分）
 
 ### 🎓 学术论文
 - arXiv (cs.AI, cs.LG, cs.CV, cs.RO, eess.SY)
 - 实时arXiv API搜索
 
 ### 📰 新闻媒体
-- **中文**：机器之心、量子位
-- **英文**：TechCrunch AI, The Verge AI, MIT Tech Review, Wired
-- **行业**：Automotive Dive, Bloomberg Tech, Financial Times
+- **中文（汽车/AI）**：
+  - 车东西、盖世汽车、第一电动网、爱范儿/董车会、36氪/36氪汽车、虎嗅、IT之家汽车、AI 工具集
+  - 机器之心、量子位、新智元（通过第三方 RSS 服务访问）
+- **英文（汽车/EV/自动驾驶/AI）**：
+  - TechCrunch AI、The Verge AI、MIT Tech Review、Wired、Automotive Dive、Automotive News、Electrek、InsideEVs、GreenCarReports、Automotive World、Autonomous Vehicle International
+  - OpenAI Blog、Google AI Blog、BAIR、AI Business、AI News、Ars Technica、Towards Data Science
 
 ### 💻 开源项目
 - GitHub trending repositories
