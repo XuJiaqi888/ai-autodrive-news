@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop, clearFeatured, setFeatured, selectLatestForShort, updateShortSummaryZh, updateTags } from '@/lib/db';
-import { RSS_SOURCES } from '@/lib/sources';
+import { ensureSchema, insertOrUpdateItem, listSubscribers, selectTopForDate, selectRecentTop, updateSummaryZh, selectRecentNewsTop, clearFeatured, setFeatured, selectLatestForShort, updateShortSummaryZh, updateTags, upsertScore } from '@/lib/db';
+import { RSS_SOURCES, KEYWORDS } from '@/lib/sources';
 import { fetchRssFeed, normalizeRssItem } from '@/lib/normalize';
 import { sendDigest } from '@/lib/email';
 import { searchGithubRepos } from '@/lib/github';
@@ -115,7 +115,34 @@ export async function GET(req: NextRequest) {
       await setFeatured(top2.map((i) => String(i.id)));
     } catch {}
 
-    // 5) 邮件推送
+    // 5) 近期条目打分（时间衰减 + 源权重 + 关键词命中）
+    try {
+      const latestForScore = await selectLatestForShort(100);
+      const now = Date.now();
+      const findWeight = (src?: string | null) => {
+        const s = (src || '').toLowerCase();
+        if (!s) return 1.0;
+        if (s.includes('github')) return 0.6;
+        const m = RSS_SOURCES.find(r => (r.url || '').toLowerCase() === s);
+        return m?.weight ?? 1.0;
+      };
+      const kwBoost = (title?: string | null, summary?: string | null) => {
+        const text = `${title || ''}\n${summary || ''}`.toLowerCase();
+        let b = 0;
+        for (const k of KEYWORDS) { if (text.includes(k.toLowerCase())) b += 1; }
+        return Math.min(b, 5); // 限制上限，避免异常放大
+      };
+      for (const it of latestForScore) {
+        const ageH = it.summary ? Math.min(72, Math.max(0, (now - (it as any).published_at ? (now - new Date((it as any).published_at as any).getTime())/3600000 : 72))) : 72;
+        const recency = 1 - (Math.min(72, ageH) / 72); // 0~1
+        const srcW = findWeight(it.source);
+        const boost = kwBoost(it.title, it.summary_zh || it.summary);
+        const score = recency * 1.5 + boost * 0.8 + srcW;
+        await upsertScore(it.id, score);
+      }
+    } catch {}
+
+    // 6) 邮件推送
     const subs = await listSubscribers();
     const zhSubs = subs.filter((s) => s.lang === 'zh');
     const enSubs = subs.filter((s) => s.lang === 'en');
